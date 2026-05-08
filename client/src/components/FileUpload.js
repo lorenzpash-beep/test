@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload as UploadIcon, FileText, Image as ImageIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon } from 'lucide-react';
 
 export const FileUpload = ({ onUploadSuccess }) => {
   const [pdfFile, setPdfFile] = useState(null);
@@ -22,19 +22,13 @@ export const FileUpload = ({ onUploadSuccess }) => {
     if (!pdfFile) return;
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append('pdf', pdfFile);
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
-
     try {
-      const response = await fetch('http://localhost:3001/api/upload', {
-        method: 'POST',
-        body: formData,
+      // In Electron, we pass the file paths
+      const result = await window.electron.uploadFiles({
+        pdfPath: pdfFile.path,
+        imagePath: imageFile ? imageFile.path : null
       });
-      const data = await response.json();
-      onUploadSuccess(data);
+      onUploadSuccess(result);
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload failed. Please try again.');
