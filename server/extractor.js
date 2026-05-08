@@ -1,22 +1,17 @@
 function extractCreatureData(text) {
   const data = {};
+  const lines = text.split('\n');
+  data.name = lines[0].trim();
 
-  // Name (usually first line or after certain headers)
-  data.name = text.split('\n')[0].trim();
-
-  // AC
   const acMatch = text.match(/Armor Class\s+(\d+)/i);
   data.ac = acMatch ? acMatch[1] : '10';
 
-  // HP
   const hpMatch = text.match(/Hit Points\s+([\d\s\(\)d\+\-]+)/i);
   data.hp = hpMatch ? hpMatch[1].trim() : '10 (3d8)';
 
-  // Speed
   const speedMatch = text.match(/Speed\s+([^\n]+)/i);
   data.speed = speedMatch ? speedMatch[1].trim() : '30 ft.';
 
-  // Abilities
   const abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
   abilities.forEach(ab => {
     const abMatch = new RegExp(`${ab}\\s+(\\d+)\\s*\\(([+-]\\d+)\\)`, 'i').exec(text);
@@ -27,15 +22,39 @@ function extractCreatureData(text) {
     }
   });
 
-  // Senses, Languages, Challenge
   const sensesMatch = text.match(/Senses\s+([^\n]+)/i);
   data.senses = sensesMatch ? sensesMatch[1].trim() : 'passive Perception 10';
-
   const langMatch = text.match(/Languages\s+([^\n]+)/i);
   data.languages = langMatch ? langMatch[1].trim() : 'Common';
-
   const crMatch = text.match(/Challenge\s+([\d\/]+)/i);
   data.cr = crMatch ? crMatch[1] : '0';
+
+  // Basic trait/action extraction
+  const traits = [];
+  const actions = [];
+  let currentSection = 'traits';
+
+  for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      if (/Actions/i.test(line)) {
+          currentSection = 'actions';
+          continue;
+      }
+
+      // Look for "Name. Description"
+      const match = line.match(/^([A-Z][a-z]+(\s[A-Z][a-z]+)*)\.\s+(.*)/);
+      if (match) {
+          const item = { name: match[1], description: match[3] };
+          if (currentSection === 'traits') traits.push(item);
+          else actions.push(item);
+      }
+  }
+
+  data.traits = traits;
+  data.actions = actions;
+  data.description = text; // Fallback
 
   return data;
 }

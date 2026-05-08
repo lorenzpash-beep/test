@@ -1,0 +1,19 @@
+{
+  "name": "dnd-homebrew-pdfer",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "electron": "electron .",
+    "build": "cd client && npm run build"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "electron-is-dev": "^3.0.1",
+    "fs-extra": "^11.2.0",
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^22.0.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}

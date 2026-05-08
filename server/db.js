@@ -1,7 +1,10 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const { app } = require('electron');
 
-const dbPath = path.join(__dirname, 'data.db');
+// Use app.getPath('userData') if app is defined (main process)
+// Default to __dirname for tests/initialization if app is not yet ready
+const dbPath = app ? path.join(app.getPath('userData'), 'data.db') : path.join(__dirname, 'data.db');
 const db = new Database(dbPath);
 
 // Initialize the database
@@ -27,11 +30,9 @@ function getCreationById(id) {
 }
 
 function createCreation(name, type, result_pdf_path, image_path, metadata) {
-  // If thumbnail path is needed, we should add it here.
-  // For simplicity, let's assume we derive thumbnail path from result_pdf_path or pass it.
   const date = new Date().toISOString();
-  // Derive thumb path from timestamp if we want, but better to pass it.
-  const thumbPath = result_pdf_path.replace('/generated_pdfs/generated-', '/thumbnails/thumb-').replace('.pdf', '.png');
+  // Thumb path is derived from pdf path in the same way main process does it
+  const thumbPath = result_pdf_path.replace('generated-pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('generated_pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('.pdf', '.png');
 
   const info = db.prepare('INSERT INTO creations (name, type, date, result_pdf_path, image_path, thumbnail_path, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(name, type, date, result_pdf_path, image_path, thumbPath, JSON.stringify(metadata));
