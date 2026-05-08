@@ -2,8 +2,6 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const { app } = require('electron');
 
-// Use app.getPath('userData') if app is defined (main process)
-// Default to __dirname for tests/initialization if app is not yet ready
 const dbPath = app ? path.join(app.getPath('userData'), 'data.db') : path.join(__dirname, 'data.db');
 const db = new Database(dbPath);
 
@@ -30,8 +28,9 @@ function getCreationById(id) {
 }
 
 function createCreation(name, type, result_pdf_path, image_path, metadata) {
-  const date = new Date().toISOString();
-  // Thumb path is derived from pdf path in the same way main process does it
+  // Use standard Date if Temporal is not available (Node 26 might have it, but for safety...)
+  const date = (typeof Temporal !== 'undefined') ? Temporal.Now.instant().toString() : new Date().toISOString();
+
   const thumbPath = result_pdf_path.replace('generated-pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('generated_pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('.pdf', '.png');
 
   const info = db.prepare('INSERT INTO creations (name, type, date, result_pdf_path, image_path, thumbnail_path, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)')
