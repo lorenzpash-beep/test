@@ -24,7 +24,7 @@ fs.ensureDirSync(thumbDir);
 
 // Register custom protocol for local assets
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'app-data', privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true } }
+  { scheme: 'app-data', privileges: { secure: true, standard: true, supportFetchAPI: true } }
 ]);
 
 function createWindow() {
@@ -46,10 +46,17 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Use the modern protocol.handle API (Electron 25+)
+  // Secure protocol handler with path traversal protection
   protocol.handle('app-data', (request) => {
-    const filePath = path.normalize(request.url.replace('app-data://', ''));
-    const fullPath = path.join(userDataPath, filePath);
+    const urlPath = decodeURIComponent(new URL(request.url).pathname);
+    const normalizedPath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const fullPath = path.join(userDataPath, normalizedPath);
+
+    // Safety check: ensure the path is within userDataPath
+    if (!fullPath.startsWith(userDataPath)) {
+        return new Response('Access Denied', { status: 403 });
+    }
+
     return net.fetch(url.pathToFileURL(fullPath).toString());
   });
 
@@ -102,14 +109,14 @@ ipcMain.handle('generate-pdf', async (event, { name, type, data, imagePath }) =>
     data
   );
 
-  return { id: creationId, pdfUrl: `app-data://generated_pdfs/${filename}` };
+  return { id: creationId, pdfUrl: `app-data:///generated_pdfs/${filename}` };
 });
 
 ipcMain.handle('get-creations', async () => {
   return db.getAllCreations().map(c => ({
       ...c,
-      result_pdf_path: `app-data://generated_pdfs/${path.basename(c.result_pdf_path)}`,
-      thumbnail_path: `app-data://thumbnails/${path.basename(c.thumbnail_path)}`
+      result_pdf_path: `app-data:///generated_pdfs/${path.basename(c.result_pdf_path)}`,
+      thumbnail_path: `app-data:///thumbnails/${path.basename(c.thumbnail_path)}`
   }));
 });
 
@@ -128,7 +135,10 @@ ipcMain.handle('delete-creation', async (event, id) => {
 });
 
 ipcMain.handle('open-pdf', async (event, pdfUrl) => {
-    const relativePath = pdfUrl.replace('app-data://', '');
-    const fullPath = path.join(userDataPath, relativePath);
-    shell.openPath(fullPath);
+    const urlPath = decodeURIComponent(new URL(pdfUrl).pathname);
+    const normalizedPath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const fullPath = path.join(userDataPath, normalizedPath);
+    if (fullPath.startsWith(userDataPath)) {
+        shell.openPath(fullPath);
+    }
 });
