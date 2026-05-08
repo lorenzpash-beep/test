@@ -1,45 +1,57 @@
-const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs-extra');
 const { app } = require('electron');
 
-const dbPath = app ? path.join(app.getPath('userData'), 'data.db') : path.join(__dirname, 'data.db');
-const db = new Database(dbPath);
+const userDataPath = app ? app.getPath('userData') : __dirname;
+const dbPath = path.join(userDataPath, 'creations.json');
 
-// Initialize the database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS creations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    date TEXT NOT NULL,
-    result_pdf_path TEXT,
-    image_path TEXT,
-    thumbnail_path TEXT,
-    metadata TEXT
-  )
-`);
+function initDb() {
+  if (!fs.existsSync(dbPath)) {
+    fs.writeJsonSync(dbPath, []);
+  }
+}
+
+initDb();
 
 function getAllCreations() {
-  return db.prepare('SELECT * FROM creations ORDER BY date DESC').all();
+  try {
+    return fs.readJsonSync(dbPath);
+  } catch (error) {
+    return [];
+  }
 }
 
 function getCreationById(id) {
-  return db.prepare('SELECT * FROM creations WHERE id = ?').get(id);
+  const creations = getAllCreations();
+  return creations.find(c => c.id === id);
 }
 
 function createCreation(name, type, result_pdf_path, image_path, metadata) {
-  // Use standard Date if Temporal is not available (Node 26 might have it, but for safety...)
+  const creations = getAllCreations();
   const date = (typeof Temporal !== 'undefined') ? Temporal.Now.instant().toString() : new Date().toISOString();
 
   const thumbPath = result_pdf_path.replace('generated-pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('generated_pdfs' + path.sep + 'generated-', 'thumbnails' + path.sep + 'thumb-').replace('.pdf', '.png');
 
-  const info = db.prepare('INSERT INTO creations (name, type, date, result_pdf_path, image_path, thumbnail_path, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(name, type, date, result_pdf_path, image_path, thumbPath, JSON.stringify(metadata));
-  return info.lastInsertRowid;
+  const newCreation = {
+    id: Date.now(),
+    name,
+    type,
+    date,
+    result_pdf_path,
+    image_path,
+    thumbnail_path: thumbPath,
+    metadata: JSON.stringify(metadata)
+  };
+
+  creations.unshift(newCreation);
+  fs.writeJsonSync(dbPath, creations);
+  return newCreation.id;
 }
 
 function deleteCreation(id) {
-  return db.prepare('DELETE FROM creations WHERE id = ?').run(id);
+  let creations = getAllCreations();
+  creations = creations.filter(c => c.id !== id);
+  fs.writeJsonSync(dbPath, creations);
 }
 
 module.exports = {

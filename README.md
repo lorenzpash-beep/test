@@ -21,6 +21,7 @@ A standalone desktop application to turn your homebrew content into official-loo
    npm install
    cd client && npm install
    ```
+   *Note: If you encounter EPERM errors on Windows, try running your terminal as Administrator.*
 
 2. **Build the frontend**:
    ```bash
@@ -45,5 +46,5 @@ To run in development mode with hot-reloading:
 
 ## Tech Stack
 - **Frontend**: React, Lucide-React
-- **Backend (Main Process)**: Electron, better-sqlite3
+- **Backend (Main Process)**: Electron, JSON-based local storage
 - **PDF Processing**: pdf-parse, Puppeteer

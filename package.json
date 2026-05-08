@@ -8,20 +8,33 @@
   "scripts": {
     "electron": "electron .",
     "build": "cd client && npm run build",
-    "postinstall": "electron-rebuild",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
   "dependencies": {
-    "better-sqlite3": "^11.0.0",
-    "electron-is-dev": "^3.0.1",
+    "electron-is-dev": "^2.0.0",
     "fs-extra": "^11.2.0",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^22.0.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "electron-rebuild": "^3.2.9"
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.dnd.homebrew.pdfer",
+    "files": [
+      "client/build/**/*",
+      "server/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable"
+    }
   }
 }

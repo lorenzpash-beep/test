@@ -46,13 +46,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Secure protocol handler with path traversal protection
+  // Secure protocol handler with path traversal protection and Windows compatibility
   protocol.handle('app-data', (request) => {
-    const urlPath = decodeURIComponent(new URL(request.url).pathname);
-    const normalizedPath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const urlObj = new URL(request.url);
+    // Remove leading slashes to prevent path.join from resetting to root on Windows
+    const relativePath = decodeURIComponent(urlObj.pathname).replace(/^\/+/, '');
+    const normalizedPath = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
     const fullPath = path.join(userDataPath, normalizedPath);
 
-    // Safety check: ensure the path is within userDataPath
     if (!fullPath.startsWith(userDataPath)) {
         return new Response('Access Denied', { status: 403 });
     }
@@ -135,8 +136,9 @@ ipcMain.handle('delete-creation', async (event, id) => {
 });
 
 ipcMain.handle('open-pdf', async (event, pdfUrl) => {
-    const urlPath = decodeURIComponent(new URL(pdfUrl).pathname);
-    const normalizedPath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const urlObj = new URL(pdfUrl);
+    const relativePath = decodeURIComponent(urlObj.pathname).replace(/^\/+/, '');
+    const normalizedPath = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
     const fullPath = path.join(userDataPath, normalizedPath);
     if (fullPath.startsWith(userDataPath)) {
         shell.openPath(fullPath);
